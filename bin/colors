@@ -1,0 +1,110 @@
+#!/bin/bash
+
+
+echoColorString() {
+  echo -ne "\033[${1};${2}${3}m${4}\033[0;0m"
+}
+
+echoColor(){
+  echoColorString $1 $2 $3 "${1}:${2}${3}"
+}
+
+
+if [[ $1 == "blocks" ]]; then
+  count=$2
+
+  block=""
+  blockSize=$3
+
+  if [[ -z $blockSize ]]; then
+    blockSize=4
+    block="    "
+  else
+    for _ in $(seq 1 $blockSize); do
+      block="$block "
+    done
+  fi
+
+  if [[ -z $count ]]; then
+    count=40
+  fi
+
+  for _ in $(seq 1 $count); do
+    for i in $(seq 0 7); do
+      echoColorString 8 4 $i "$block"
+      echoColorString 8 10 $i "$block"
+    done
+
+    echo ""
+  done
+
+  exit 0
+elif [[ $1 == "flag" ]]; then
+  count=$2
+
+  block=""
+  blockSize=$3
+
+  if [[ -z $blockSize ]]; then
+    blockSize=2
+    block="  "
+  else
+    for _ in $(seq 1 $blockSize); do
+      block="$block "
+    done
+  fi
+
+  if [[ -z $count ]]; then
+    count=40
+  fi
+
+  for _ in $(seq 1 $count); do
+    for i in $(seq 0 7); do
+      echoColorString 8 4 $i "$block"
+      echoColorString 8 10 $i "$block"
+    done
+
+    for i in $(seq 0 7); do
+      x=$((7 - $i))
+      echoColorString 8 10 $x "$block"
+      echoColorString 8 4 $x "$block"
+    done
+
+    echo ""
+  done
+
+  exit 0
+elif [[ $1 == "weights" ]]; then
+  for y in $(seq 3 4); do
+    for x in $(seq 0 1); do
+      for z in $(seq 0 9); do
+      if [[ $y == 4 && $x == 1 ]]; then
+        echoColor 0 10 $z
+      else
+        echoColor $x "0$y" $z
+      fi
+        echo -n " "
+      done
+
+      echo ""
+    done
+  done
+
+  exit 0
+fi
+
+for x in $(seq 0 9); do
+  for y in $(seq 0 10); do
+    for z in $(seq 0 9); do
+      if [[ $y -ge 10 ]]; then
+        echoColor $x $y $z
+      else
+        echoColor $x "0$y" $z
+      fi
+
+      echo -n " "
+    done
+
+    echo ""
+  done
+done

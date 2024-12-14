@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# sh/bin/rainbowize
+#
+# by alic3dev (2024)
+#
+# Rainbowizes a string of text
+
+source "${ALIC3_SH_DIR}/functions/rainbowize"
+
+rainbowize "$1"
+printf "\n"

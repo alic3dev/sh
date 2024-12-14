@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# sh/bin/log2n
+#
+# by alic3dev (2024)
+#
+# An implementation of logarithmic base-2
+
+source "${ALIC3_SH_DIR}/functions/log2n"
+
+printUsage() {
+  printf "USAGE: log2n [numbers...]\n"
+}
+
+if [[ $# < 1 ]]; then
+  printUsage
+  exit 1
+fi
+
+for number in "$@"; do
+  log2n $number
+  printf "\n"
+done

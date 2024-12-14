@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# generate-id
+#
+# by alic3dev (2024)
+#
+# Generates a random alphanumeric ID
+
+source "$ALIC3_SH_DIR/functions/echoColor"
+source "$ALIC3_SH_DIR/functions/generateId"
+
+printUsage() {
+  echoColorBeginning fgb "USAGE: " "generate-id [length]"
+}
+
+nonNumericChars=$(
+  echo -n "$1" |
+  tr -d "[:digit:]" |
+  wc -c
+)
+
+if [[ $# -gt 1 || $nonNumericChars -gt 0 ]]; then
+  printUsage
+  exit 1
+fi
+
+id=$(generateId $1)
+echo $id

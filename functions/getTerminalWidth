@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# getTerminalWidth
+#
+# by alic3dev (2024)
+
+# getTerminalWidth()
+# @returns Width of the terminal in column count
+getTerminalWidth() {
+  printf "$COLUMNS"
+}

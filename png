@@ -1,0 +1,456 @@
+#!/bin/bash
+
+source "${ALIC3_SH_DIR}/functions/echoColor"
+source "${ALIC3_SH_DIR}/functions/dec2hex"
+source "${ALIC3_SH_DIR}/functions/hex2dec"
+source "${ALIC3_SH_DIR}/functions/rainbowize"
+
+# Setup variables
+programName="png"
+dataDir="${ALIC3_SH_DIR}/data"
+crcDataFile="${dataDir}/crcTable.csv"
+
+printUsage() {
+	echo "USAGE: ${programName} {options[]} outputPath.png"
+	echo -e "\nOptions:"
+	echo -e "\t--crc-table\t\tPath to the CRC table to use (CSV format)"
+	echo -e "\t--generate-missing-crc\tGenerate the CRC table if missing"
+	echo -e "\t--generate-crc\t\tAlways (re)generate the CRC table"
+	echo -e "\t-h, --help\t\tDisplays usage information"
+}
+
+# CRC
+crcTable=()
+crcHexLoop=$((0xEDB88320))
+
+calculateCRCTable() {
+	for ((i = 0; i < 256; i++)); do
+		local val=$i
+
+		for ((x = 0; x < 8; x++)); do
+			local shiftedVal=$(($val >> 1))
+
+			if [[ $(($val & 1)) != 0 ]]; then
+				val=$(($crcHexLoop ^ $shiftedVal))
+			else
+				val=$shiftedVal
+			fi
+		done
+
+		crcTable[$i]=$val
+	done
+}
+
+updateCRC() {
+  local crc=$1
+  local buffer=()
+  local bufferString=$(tr -d "\\\x" <<< "$2")
+
+  for ((i = 0; i < ${#bufferString}; i += 2)); do
+    buffer+=($(hex2dec ${bufferString:$i:2}))
+  done
+
+  local length=${#buffer[@]}
+
+  # Assume CRC table is computed/loaded
+
+  for ((i = 0; i < length; i++)); do
+    local val=${buffer[$i]}
+
+    local a=$(($crc ^ $val))
+    local b=${crcTable[$(($a & 255))]}
+    local shiftedCRC=$(($crc >> 8))
+
+    crc=$(($b ^ $shiftedCRC))
+  done
+
+  echo -n $crc
+}
+
+getCRC() {
+  local buffer=$1
+
+  local crc=$(($(updateCRC 4294967295 $buffer) ^ 4294967295))
+
+  decimalToHexBytes $crc 4
+}
+
+generateCRCTableFile() {
+	calculateCRCTable
+
+	echo -ne "" > $crcDataFile
+
+	local crcLength=${#crcTable[@]}
+
+	for ((i = 0; i < $crcLength; i++)); do
+		echo -ne ${crcTable[$i]} >> $crcDataFile
+
+		if [[ $i -lt $(($crcLength - 1)) ]]; then
+			echo -ne ", " >> $crcDataFile
+		fi
+	done
+
+	echo "" >> $crcDataFile
+}
+
+outputFile=""
+shouldGenerateCRCFileIfMissing=0
+shouldGenerateCRCFile=0
+
+# Parse Options
+shouldContinue=0
+for ((i = 1; i <= $#; i++)); do
+	if [[ $shouldContinue == 1 ]]; then
+		shouldContinue=0
+		continue
+	fi
+
+	arg=${!i}
+	iNext=$(($i + 1))
+
+	if [[ $arg == "--crc-table" ]]; then
+		crcDataFile=${!iNext}
+		shouldContinue=1
+	elif [[ $arg == "--generate-missing-crc" ]]; then
+		shouldGenerateCRCFileIfMissing=1
+	elif [[ $arg == "--generate-crc" ]]; then
+		shouldGenerateCRCFile=1
+	elif [[ $arg == "--help" || $arg == "-h" ]]; then
+		printUsage
+		exit 0
+	elif [[ -z $outputFile ]]; then
+		outputFile=$arg
+	else
+		echoColorBeginning rb "Unknown option: " $arg
+		printUsage
+		exit 1
+	fi
+done
+
+# Check Arguments
+if [[ $shouldGenerateCRCFile == 1 ]]; then
+	generateCRCTableFile
+
+	if [[ -z $outputFile ]]; then
+		exit 0
+	fi
+fi
+
+if [[ -z $outputFile ]]; then
+	echoColor rb "Missing outputPath"
+	printUsage
+	exit 1
+fi
+
+
+if [[ ! -f $crcDataFile ]]; then
+	if [[ $shouldGenerateCRCFileIfMissing == 1 ]]; then
+		generateCRCTableFile
+	else
+		echoColorBeginning rb "File doesn't exist: " $crcDataFile
+		exit 1
+	fi
+elif [[ ! -r $crcDataFile ]]; then
+	echoColorBeginning rb "Can't read: " $crcDataFile
+	exit 1
+else
+	crcTableData=$(cat $crcDataFile | tr -d " \r\n")
+
+	while read -r -d ", " line; do
+		crcTable+=($line)
+	done <<< "$crcTableData, "
+fi
+
+# Chunk Information
+# 	- Order
+#		1. IHDR
+#		2. *PLTE* (Optional)
+#		3. IDAT[] (Multiple)
+#		4. IEND
+#	- Chunk Structure
+#		- Length (Data bytes) -> Type -> Data -> CRC
+#		- Length (=0) -> Type -> CRC
+# - Length 4 byte unsigned integer
+#	- CRC (Cyclic Redundancy Code) - Data & Type
+#		- x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 +
+#		  x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + 1
+#	- IHDR Structure
+#		1. Width              | 4 bytes | unsigned integer
+#		2. Height             | 4 bytes | unsigned integer
+#		3. Bit Depth          | 1 byte  | 1, 2a, 4, 8, 16
+#		4. Color Type         | 1 byte  | 0, 2, 3, 4, 6
+#		5. Compression Method | 1 byte  | 0
+#		6. Filter Method      | 1 byte  | 0
+#		7. Interlace Method   | 1 byte  | 0, 1
+#
+# MSB -> LSB
+# 8 -> 4 -> 2 -> 1
+
+ihdrColorTypeNames=(
+	"Grayscale"
+	"TrueColor"
+	"IndexedColor"
+	"GrayscaleWithAlpha"
+	"TrueColorWithAlpha"
+)
+
+ihdrColorTypeValues=(
+	0
+	2
+	3
+	4
+	6
+)
+
+ihdrColorTypeAllowedBitDepths=(
+	"1 2 4 8 16"
+	"8 16"
+	"1 2 4 8"
+	"8 16"
+	"8 16"
+)
+
+compressionMethodNames=(
+	"Inflate/Deflate"
+)
+
+compressionMethodValues=(
+	0
+)
+
+filterMethodNames=(
+	"Adaptive"
+)
+
+filterMethodValues=(
+	0
+)
+
+interlaceMethodNames=(
+	"NoInterlace"
+	"Adam7Interlace"
+)
+
+interlaceMethodValues=(
+	0
+	1
+)
+
+# Signatures
+pngSignature="\x89\x50\x4e\x47\x0d\x0a\x1a\x0a"
+ihdrSignature="\x49\x48\x44\x52"
+plteSignature="\x50\x4c\x54\x45"
+idatSignature="\x49\x44\x41\x54"
+iendSignature="\x49\x45\x4e\x44"
+
+# Default Image Values
+imageWidth=100
+imageHeight=100
+
+# Default IHDR Values
+ihdrColorTypeIndex=1
+ihdrColorType=${ihdrColorTypeValues[$ihdrColorTypeIndex]}
+ihdrColorTypeName=""
+
+ihdrBitDepth=$(cut -d " " -f 1 <<< "${ihdrColorTypeAllowedBitDepths[$ihdrColorTypeIndex]}")
+
+ihdrCompressiomMethodIndex=0
+ihdrCompressionMethod=${compressionMethodValues[$ihdrCompressionMethodIndex]}
+ihdrCompressionMethodName=""
+
+ihdrFilterMethodIndex=0
+ihdrFilterMethod=${filterMethodValues[$ihdrFilterMethodIndex]}
+ihdrFilterMethodName=""
+
+ihdrInterlaceMethodIndex=0
+ihdrInterlaceMethod=${interlaceMethodValues[$ihdrInterlaceMethodIndex]}
+ihdrInterlaceMethodName=""
+
+setIHDRNames() {
+  ihdrColorTypeName=${ihdrColorTypeNames[$ihdrColorTypeIndex]}
+  ihdrCompressionMethodName=${compressionMethodNames[$ihdrCompressionMethodIndex]}
+  ihdrFilterMethodName=${filterMethodNames[$ihdrFilterMethodIndex]}
+   ihdrInterlaceMethodName=${interlaceMethodNames[$ihdrInterlaceMethodIndex]}
+}
+
+checkIHDRValues() {
+  local validColorType=0
+
+  for ((i = 0; i < ${#ihdrColorTypeValues[@]}; i++)); do
+    local val=${ihdrColorTypeValues[$i]}
+
+    if [[ $val == $ihdrColorType ]]; then
+      validColorType=1
+      ihdrColorTypeIndex=$i
+      break
+    fi
+  done
+
+  if [[ $validColorType == 0 ]]; then
+    echoColorBeginning rb "Invalid color type: " $colorType
+    exit 1
+  fi
+
+  if [[
+    $ihdrColorTypeIndex -ge ${#ihdrColorTypeAllowedBitDepths} ||
+    $ihdrColorTypeIndex -lt 0
+  ]]; then
+    echoColorBeginning rb "Invalid color type index: " $ihdrColorTypeIndex
+  fi
+
+  local allowedBitDepths=${ihdrColorTypeAllowedBitDepths[$ihdrColorTypeIndex]}
+  local validBitDepth=0
+
+  while read -r -d " " line; do
+    if [[ $line == $ihdrBitDepth ]]; then
+      validBitDepth=1
+      break
+    fi
+  done <<< "$allowedBitDepths "
+
+  if [[ $validBitDepth == 0 ]]; then
+    echoColorBeginning rb "Invalid bit depth: " $ihdrBitDepth
+    exit 1
+  fi
+}
+
+printIHDRValues() {
+  echoColorBeginning fgb  "Width: " "${imageWidth}px"
+  echoColorBeginning fgb  "Height: " "${imageHeight}px"
+
+  if [[ $ihdrColorTypeName == "TrueColor" ]]; then
+    printf "${colorBoldForeground}Color Type: "
+    rainbowize $ihdrColorTypeName
+    printf "\n"
+  else
+    echoColorBeginning fgb  "Color Type: " $ihdrColorTypeName
+  fi
+  echoColorBeginning fgb  "Bit Depth: " $ihdrBitDepth
+  echoColorBeginning fgb  "Compression Method: " $ihdrCompressionMethodName
+  echoColorBeginning fgb  "Filter Method: " $ihdrFilterMethodName
+  echoColorBeginning fgb  "Interlace Method: " $ihdrInterlaceMethodName
+}
+
+write() {
+	echo -ne $1 >> $outputFile
+}
+
+writeDecimal() {
+  local hex=$(dec2hex $1)
+	local bytes=$(hexBytes $hex $2)
+
+	write $bytes
+}
+
+decimalToHexBytes() {
+  local hex=$(dec2hex $1)
+
+  echo -n $(hexBytes $hex $2)
+}
+
+hexBytes() {
+  local length=$2
+  local hex=$(tr -dc "[:alnum:]" <<< $1)
+  local result=""
+
+  if [[ $((${#hex} % 2)) != 0 ]]; then
+    hex="0$hex"
+  fi
+
+  if [[ -z $length ]]; then
+    length=${#hex}
+  else
+    length=$(($length * 2))
+  fi
+
+  for ((i = $length; i > 0; i -= 2)); do
+    if [[ $i -le ${#hex} ]]; then
+      result="${result}\x${hex:$((${#hex} - $i)):2}"
+    else
+      result="${result}\x00"
+    fi
+  done
+
+  echo -n $result
+}
+
+constructData() {
+  for ((i = 1; i <= $#; i += 2)); do
+    local nextIndex=$(($i + 1))
+
+    local value=${!i}
+    local length=${!nextIndex}
+
+    decimalToHexBytes $value $length
+  done
+}
+
+getByteLength() {
+  local byteCount=$((${#1} / 4))
+
+  echo -n $(decimalToHexBytes $byteCount 4)
+}
+
+writePNGSignature() {
+	write $pngSignature
+}
+
+writeChunk() {
+  local signature=$1
+  local data=$2
+  local dataLength=$(getByteLength $data)
+  local crc=$(getCRC "${signature}${data}")
+
+  write $dataLength
+  write $signature
+  write $data
+  write $crc
+}
+
+writeIHDRChunk() {
+  local data=$(
+    constructData $imageWidth 4 \
+      $imageHeight 4 \
+      $ihdrBitDepth 1 \
+      $ihdrColorType 1 \
+      $ihdrCompressionMethod 1 \
+      $ihdrFilterMethod 1 \
+      $ihdrInterlaceMethod 1
+  )
+
+  writeChunk $ihdrSignature $data
+}
+
+writePLTEChunk() {
+	writeChunk $plteSignature
+}
+
+writeIDATChunk() {
+  local data=$(constructData 0 1)
+	writeChunk $idatSignature $data
+}
+
+writeIENDChunk() {
+  writeChunk $iendSignature
+}
+
+checkIHDRValues
+setIHDRNames
+printIHDRValues
+
+writePNG() {
+  # Setup PNG
+  echo -ne "" > $outputFile
+
+  writePNGSignature
+  writeIHDRChunk
+
+  if [[ $ihdrColorType == 3 ]]; then
+	  writePLTEChunk
+  fi
+
+  writeIDATChunk
+  writeIENDChunk
+}
+
+writePNG

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# sh/functions/rainbowize
+#
+# by alic3dev (2024)
+#
+# Rainbowizes a string of text
+
+source "${ALIC3_SH_DIR}/variables/colorArrays"
+
+rainbowize() {
+  local length=${#1}
+
+  local colors=(${colorBoldArray[@]})
+  local colorsLength=${#colors[@]}
+
+  for ((i = 0; i < $length; i++)); do
+    local color="${colors[$(($i % $colorsLength))]}"
+    local character="${1:$i:1}"
+
+    printf "${color}${character}"
+  done
+
+  printf "$colorReset"
+}

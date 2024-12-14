@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# colorArrays
+#
+# by alic3dev (2024)
+#
+# Sets color variables to be used in print/echo statements
+
+source "${ALIC3_SH_DIR}/variables/colors"
+
+colorArray=(
+  $colorRed
+  $colorYellow
+  $colorGreen
+  $colorCyan
+  $colorBlue
+  $colorViolet
+)
+
+colorBoldArray=(
+  $colorBoldRed
+  $colorBoldYellow
+  $colorBoldGreen
+  $colorBoldCyan
+  $colorBoldBlue
+  $colorBoldViolet
+)
+
+colorFullArray=(
+  $colorBoldRed
+  $colorRed
+  $colorBoldYellow
+  $colorYellow
+  $colorBoldGreen
+  $colorGreen
+  $colorBoldCyan
+  $colorCyan
+  $colorBoldBlue
+  $colorBlue
+  $colorBoldViolet
+  $colorViolet
+)

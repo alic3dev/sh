@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# getTerminalHeight
+#
+# by alic3dev (2024)
+
+# getTerminalHeight()
+# @returns Height of the terminal in line count
+getTerminalHeight() {
+  printf "$LINES"
+}

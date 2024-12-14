@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# conv.sh
+#
+# by alic3dev (2024)
+#
+# A simple conversion utility
+
+# Import functions
+source "${ALIC3_SH_DIR}/functions/echoColor"
+
+# Assign arguments to variables
+inputPath=$1
+outputPath=$2
+
+# printUsage()
+#	@description - Prints usage information for this script
+printUsage() {
+	echo "USAGE:"
+	echo -e "\tconv [inputPath] [outputPath]"
+}
+
+# Check that passed args are set
+if [ -z $inputPath ]; then
+	echoColor red "Missing input path"
+	printUsage
+	exit 1
+elif [ -z $outputPath ]; then
+	echoColor red "Missing output path"
+	printUsage
+	exit 1
+fi
+
+# Check existence and readability of $inputPath
+if [ ! -f $inputPath ]; then
+	echoColor red "File not found: $inputPath"
+	exit 1
+elif [ ! -r $inputPath ]; then
+	echoColor red "File not readable: $inputPath"
+	exit 1
+fi
+
+inputContents=$(cat $inputPath)
+
+echo $inputContents

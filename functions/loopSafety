@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# loopSafety
+#
+# by alic3dev (2024)
+#
+# Helps protect against infinite loops
+
+LOOP_SAFETY_MAX=100000
+
+# loopSafety()
+# @parameter index Index of the current loop
+# @parameter (maxLoops) Max number of loops: Defaults to LOOP_SAFETY_MAX
+loopSafety() {
+  local maxLoops=$LOOP_SAFETY_MAX
+
+  if [[ ! -z $2 ]]; then
+    maxLoops=$2
+  fi
+
+  if [[ -z $1 ]]; then
+    echoColor rb "Loop safety not called properly" 1>&2
+    echoColor rb "Exiting..." 1>&2
+    exit 1
+  elif [[ $1 -ge $maxLoops ]]; then
+    echoColor rb "Detected infinite loop!!!" 1>&2
+    echoColor rb "Exiting..." 1>&2
+    exit 1
+  fi
+}

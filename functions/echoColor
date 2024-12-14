@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# echoColor
+#
+# by alic3dev (2024)
+#
+# Simple functions to echo in a specified color
+
+# Import variables
+source "${ALIC3_SH_DIR}/variables/colors"
+
+# _echoColorPart()
+#	@internal
+#	@description - Base echo functionality
+_echoColorPart() {
+	echo -ne "${1}${2}${colorReset}"
+}
+
+# _echoColor()
+# @internal
+#	@parameter color - The color name to display in (ex. red)
+#	@parameter text  - The text to echo which will be colorized
+#	@description - Echos in a specified color
+_echoColor() {
+	case "$1" in
+	  "red" | "r")
+		  _echoColorPart $colorRed "$2"
+		;;
+	  "orange" | "o")
+		  _echoColorPart $colorOrange "$2"
+		;;
+	  "yellow" | "y")
+		  _echoColorPart $colorYellow "$2"
+		;;
+	  "green" | "g")
+		  _echoColorPart $colorGreen "$2"
+		;;
+	  "blue" | "b")
+		  _echoColorPart $colorBlue "$2"
+		;;
+	  "cyan" | "c")
+		  _echoColorPart $colorCyan "$2"
+		;;
+	  "violet" | "v" | "indigo" | "i")
+		  _echoColorPart $colorViolet "$2"
+		;;
+	  "red-bold" | "rb")
+		  _echoColorPart $colorBoldRed "$2"
+		;;
+		"orange-bold" | "ob")
+		  _echoColorPart $colorBoldOrange "$2"
+		;;
+		"yellow-bold" | "yb")
+		  _echoColorPart $colorBoldYellow "$2"
+		;;
+		"green-bold" | "gb")
+		  _echoColorPart $colorBoldGreen "$2"
+		;;
+		"blue-bold" | "bb")
+		  _echoColorPart $colorBoldBlue "$2"
+		;;
+		"cyan-bold" | "cb")
+		  _echoColorPart $colorBoldCyan "$2"
+		;;
+		"violet-bold" | "vb" | "indigo-bold" | "ib")
+		  _echoColorPart $colorBoldViolet "$2"
+		;;
+    "foreground-bold" | "fgb")
+		  _echoColorPart $colorBoldForeground "$2"
+		;;
+	  *)
+		  echo -ne "$2"
+	  ;;
+	esac
+}
+
+# echoColor()
+#	@parameter color - The color name to display in (ex. red)
+#	@parameter text  - The text to echo which will be colorized
+#	@description - Echos in a specified color
+echoColor() {
+  _echoColor "$1" "$2\n"
+}
+
+# echoColorBeginning()
+#	@parameter color       - The color name to display in (ex. red)
+#	@parameter coloredText - The text to echo which will be colorized
+# @parameter text        - The text to echo uncolorized
+#	@description - Echos in a specified color at the beginning
+echoColorBeginning() {
+  _echoColor "$1" "$2"
+  echo -ne "$3\n"
+}
+
+# echoColorMiddle()
+#	@parameter color       - The color name to display in (ex. red)
+#	@parameter beginText   - The text to echo which will be uncolorized
+#	@parameter coloredText - The text to echo which will be colorized
+#	@parameter endText     - The text to echo which will be uncolorized
+#	@description - Echos the middle text in a specified color
+echoColorMiddle() {
+  echo -ne "$2"
+  _echoColor "$1" "$3"
+  echo -ne "$4\n"
+}
+
+# echoColorSides()
+#	@parameter color     - The color name to display in (ex. red)
+#	@parameter beginText - The text to echo which will be colorized
+#	@parameter text      - The text to echo which will be uncolorized
+#	@parameter endText   - The text to echo which will be colorized
+#	@description - Echos the beginning and end text in a specified color
+echoColorSides() {
+  _echoColor "$1" "$2"
+  echo -ne "$3"
+  _echoColor "$1" "$4\n"
+}
+
+# echoColorEnd()
+#	@parameter color       - The color name to display in (ex. red)
+# @parameter text        - The text to echo uncolorized
+#	@parameter coloredText - The text to echo which will be colorized
+#	@description - Echos in a specified color at the end
+echoColorEnd() {
+  echo -ne "$2"
+  _echoColor "$1" "$3\n"
+}

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# sh/functions/hexbytes
+#
+# by alic3dev (2024)
+#
+# Pads hex strings and adds "\x" to each byte
+
+hexBytes() {
+  local length=$2
+  local hex=$(tr -dc "[:alnum:]" <<< $1)
+  local result=""
+
+  if [[ $((${#hex} % 2)) != 0 ]]; then
+    hex="0$hex"
+  fi
+
+  if [[ -z $length ]]; then
+    length=${#hex}
+  else
+    length=$(($length * 2))
+  fi
+
+  for ((i = $length; i > 0; i -= 2)); do
+    if [[ $i -le ${#hex} ]]; then
+      result="${result}\x${hex:$((${#hex} - $i)):2}"
+    else
+      result="${result}\x00"
+    fi
+  done
+
+  echo -n $result
+}

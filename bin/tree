@@ -1,0 +1,60 @@
+#!/bin/bash
+
+source "$ALIC3_SH_DIR/variables/colors"
+
+branch() {
+  local cwd=$1
+  local depth=1
+
+  if [[ ! -z $2 ]]; then
+    depth=$(($2 + 1))
+  fi
+
+  local depthSpacing=""
+  local directorySpacing=""
+
+  if [[ $depth -gt 0 ]]; then
+    for i in $(seq 1 $depth); do
+      depthSpacing="${depthSpacing}  "
+    done
+
+    directorySpacing=${depthSpacing:2:${#depthSpacing}}
+  fi
+
+  local cwdName=$(basename "$cwd")
+
+  cd "$cwd"
+
+  printf "${directorySpacing}|_ ${colorBoldBlue}${cwdName}${colorReset}\n"
+
+  local directoryContents=$(ls -A1)
+
+  while read -r line; do
+    if [[ -f "$line" ]]; then
+      if [[ $(stat -c %A "$line") == *"x"* ]]; then
+        printf "${depthSpacing}|- ${colorBoldGreen}${line}${colorReset}\n"
+      else
+        printf "${depthSpacing}|- $line\n"
+      fi
+    elif [[ -d "$line" ]]; then
+      branch "$cwd/$line" $depth
+      cd "$cwd"
+    fi
+  done <<< "$directoryContents"
+}
+
+if [[ ! -z $1 ]]; then
+  path="$(realpath $1)"
+
+  cd "$path"
+
+  if [[ $? == 0 ]]; then
+    branch "$path"
+  else
+    exit 1
+  fi
+else
+  startingDirectory=$(pwd)
+  branch "$startingDirectory"
+  cd "$startingDirectory"
+fi

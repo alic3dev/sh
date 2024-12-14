@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# sh/functions/isInteger
+#
+# by alic3dev (2024)
+#
+# Checks if number(s) are integer(s)
+
+# isInteger()
+# @parameter [number(s)] - Numbers to check if they are integers
+# @returns "1": all params are integers, "0": param is not an integer
+isInteger() {
+  for ((i = 1; i <= $#; i++)); do
+    local param=${!i}
+    local paramLength=${#param}
+
+    for ((c = 0; c < $paramLength; c++)); do
+      local char=${param:$c:1}
+
+      case $char in
+        "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
+          continue
+        ;;
+        "-")
+          if [[ $c != 0 ]]; then
+            printf "0"
+            return
+          fi
+        ;;
+        *)
+          printf "0"
+          return
+        ;;
+      esac
+    done
+  done
+
+  printf "1"
+}

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# hex2dec
+#
+# by alic3dev (2024)
+#
+# Function to convert hex numbers into decimal
+
+# hex2dec()
+#	@description Converts a single decimal number to hex
+# 	@parameter Number - A decimal number
+#	@returns A hex number (Without a newline)
+hex2dec() {
+	echo -ne "$((0x$1))"
+}

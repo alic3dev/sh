@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# sh/functions/adler32sum
+#
+# by alic3dev (2024)
+#
+# An implementation of the ADLER32 sum
+
+adler32sum() {
+  local base=65521
+
+  local adler=$2
+
+  if [[ -z $adler ]]; then
+    adler=1
+  fi
+
+  local buffer=$1
+
+  local s1=$(($adler & 0xFFFF))
+  local s2=$((($adler >> 16) & 0xFFFF))
+
+  local length=${#buffer}
+
+  for ((i = 0; i < $length; i++)); do
+    s1=$((($s1 + ${buffer:$i:1}) % base))
+    s2=$((($s2 + $s1) % base))
+  done
+
+  printf $((($s2 << 16) + $s1))
+}

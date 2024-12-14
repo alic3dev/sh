@@ -1,0 +1,37 @@
+#!/bin/bash
+
+source "${ALIC3_SH_DIR}/functions/echoColor"
+
+color=$1
+text=$2
+
+if [[ -z "$color" ]]; then
+  color="boldGreen"
+fi
+
+if [[ -z "$text" ]]; then
+  text="Colored"
+fi
+
+echoColor boldForeground "echo"
+echo "$text"
+echo ""
+
+echoColor boldForeground "echoColor"
+echoColor "$color" "$text"
+echo ""
+
+echoColor boldForeground "echoColorBeginning"
+echoColorBeginning "$color" "$text" ": Uncolored"
+echo ""
+
+echoColor boldForeground "echoColorMiddle"
+echoColorMiddle "$color" "Uncolored: " "$text" ": Uncolored"
+echo ""
+
+echoColor boldForeground "echoColorSides"
+echoColor "$color" "$text" ": Uncolored :" "$text"
+echo ""
+
+echoColor boldForeground "echoColorEnd"
+echoColorEnd "$color" "Uncolored: " "$text"

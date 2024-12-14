@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# dec2hex
+#
+# by alic3dev (2024)
+#
+# Function to convert decimal numbers into hex
+
+# dec2hex()
+#	@description Converts a single decimal number to hex
+# 	@parameter Number - A decimal number
+#	@returns A hex number (Without a newline)
+dec2hex() {
+	printf "%x" "$1"
+}

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# hex2dec
+# by alic3dev (2024)
+#
+# Converts hex numbers to decimal
+
+source "${ALIC3_SH_DIR}/functions/hex2dec"
+
+for num in "$@"
+do
+	echo $(hex2dec "$num")
+done

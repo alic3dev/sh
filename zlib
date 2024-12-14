@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# zlib
+#
+# by alic3dev (2024)
+#
+# An implementation of the zlib specification
+
+source "${ALIC3_SH_DIR}/functions/adler32sum"
+source "${ALIC3_SH_DIR}/functions/base2base"
+source "${ALIC3_SH_DIR}/functions/pad"
+
+# zlib stream structure/format
+# 0. CMF (Compression method and flags) | 1 byte
+#   - Byte is split into 4 bits for method and 4 bits for information
+#     - Bits 0..3: CM (Compression Method)
+#     - Bits 4..7: CINFO (Compression Info)
+# 1. FLG | 1 byte
+# if FLG.FDICT is set
+#   2. DICTID | 4 bytes
+# 3. Compressed Data | Variable Bytes
+# 4. ADLER32 | 4 bytes
+
+# CM = 8
+#   Deflate (Window size up to 32k)
+#   CINFO is base-2 logarithm of the LZ77 window size, minus 8.
+#   CINFO = 7: 32K window size
+
+# CM = 15: Reserved for future use
+
+# FLG
+#   FCHECK bits 0..4
+#   FDICT bits 5
+#   FLEVEL bits 6..7
+#     0 Fastest
+#     1 Fast
+#     2 Default
+#     3 Max compression, slowest
+#
+#   FCHECK is set to satisfy $(((CMF * 256) + FLG)) being a multiple of 31
+#   when viewed as 16 bit unsigned integer.
+
+zlib() {
+  local compressionMethod=0x08
+  local compressionInfo=0x07
+
+  local cmf=$(padLeft $(base2base $compressionMethod 10 2) 4 0)
+  cmf="$cmf$(padLeft $(base2base $compressionInfo 10 2) 4 0)"
+  cmf=$(base2base $cmf 2 16)
+
+  local fCheck=0x00
+  local fDict=0
+  local fLevel=0x02
+
+  #local cmfDecimal=$(base2base $cmf 16 10)
+
+  local flag="${fDict}$(padLeft $(base2base $fLevel 10 2) 2 0)"
+
+  printf "$flag"
+
+  local dictId=0x0000
+
+  local data=""
+
+  local adler32sum=0x0000
+}
+
+zlib $@

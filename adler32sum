@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# adler32sum
+#
+# by alic3dev (2024)
+#
+# An implementation of the ADLER32 sum
+
+source "${ALIC3_SH_DIR}/functions/adler32sum"
+
+adler32sum $@

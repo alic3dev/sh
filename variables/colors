@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# sh/variables/colors
+#
+# by alic3dev (2024)
+#
+# Sets color variables to be used in print/echo statements
+
+# Basic
+colorRed="\033[0;31m"
+colorOrange="\033[0;39m"
+colorYellow="\033[0;33m"
+colorGreen="\033[0;32m"
+colorBlue="\033[0;34m"
+colorCyan="\033[0;36m"
+colorViolet="\033[0;35m"
+colorIndigo="${colorViolet}"
+
+# Bold
+colorBoldRed="\033[1;31m"
+colorBoldOrange="\033[1;39m"
+colorBoldYellow="\033[1;33m"
+colorBoldGreen="\033[1;32m"
+colorBoldBlue="\033[1;34m"
+colorBoldCyan="\033[1;36m"
+colorBoldViolet="\033[1;35m"
+colorBoldIndigo="${colorBoldViolet}"
+colorBoldForeground="\033[1;37m"
+
+# Reset
+colorReset="\033[0;0m"

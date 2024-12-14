@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# sh/functions/pad
+#
+# by alic3dev (2024)
+#
+# A collection of string padding functions
+
+source "${ALIC3_SH_DIR}/functions/padLeft"
+source "${ALIC3_SH_DIR}/functions/padRight"
+
+pad() {
+  padLeft $@
+}

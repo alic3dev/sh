@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# colors-completions
+#
+# by alic3dev (2024)
+#
+# Bash completion module for colors
+
+_colors_completion_module() {
+  COMPREPLY=()
+
+  mode="${COMP_WORDS[1]}"
+
+  case $mode in
+    "blocks" | "flag" | "weights" | "help")
+      return 0
+    ;;
+    *)
+      if [[ ${#COMP_WORDS[@]} -lt 3 ]]; then
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        COMPREPLY=( $(compgen -W "blocks flag weights help" -- $cur) )
+      fi
+
+      return 0;
+    ;;
+  esac
+
+  return 0
+}
+
+complete -F _colors_completion_module colors

@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# base2base
+#
+# by alic3dev (2024)
+#
+# Converts a number between bases
+
+# base2base()
+# @discussion - No error checking, assumes number is valid and within base and bases are valid
+# @parameter number - The number to convert
+# @parameter fromBase - The base the number is in
+# @parameter toBase - The base to convert to
+# @returns The number in the new base
+base2base() {
+  local baseLookup=(0 1 2 3 4 5 6 7 8 9 a b c d e f g h i j k l m n o p q r s t u v w x y z)
+  local baseLookupLength=${#baseLookup[@]}
+  local number=${1,,}
+  local isNegative=0
+  local fromBase=$2
+  local toBase=$3
+  local toBaseIndex=$(($toBase - 1))
+
+  if [[ ${number:0:1} == "-" ]]; then
+    isNegative=1
+    number=${number:1}
+  fi
+
+  local decimalNumber=0
+  local numberLength=${#number}
+
+  local resultingNumber=""
+
+  findIndex() {
+    for ((ci = 0; ci < $baseLookupLength; ci++)); do
+      local c=${baseLookup[$ci]}
+
+      if [[ "$c" == "$1" ]]; then
+        printf $ci
+        break
+      fi
+    done
+  }
+
+  for ((i = $(($numberLength - 1)); i >= 0; i--)); do
+    local index=$(findIndex ${number:$((($numberLength - 1) - $i)):1})
+    decimalNumber=$(($decimalNumber + ($index * ($fromBase ** $i))))
+  done
+
+  local resultArray=(0)
+
+  for ((i = 0; i < $decimalNumber; i++)); do
+    local arrayIndex=0
+
+    while true; do
+      resultArray[$arrayIndex]=$((${resultArray[$arrayIndex]} + 1))
+
+      if [[ ${resultArray[$arrayIndex]} -lt $toBase ]]; then
+        break
+      fi
+
+      resultArray[$arrayIndex]=0
+      arrayIndex=$(($arrayIndex + 1))
+    done
+  done
+
+  if [[ $isNegative == 1 ]]; then
+    printf "-"
+  fi
+
+  for ((i = $((${#resultArray[@]} - 1)); i >= 0; i--)); do
+    printf "${baseLookup[${resultArray[$i]}]}"
+  done
+
+  printf "\n"
+}

@@ -1,0 +1,135 @@
+#!/bin/bash
+
+# brute-force
+#
+# by alic3dev (2024)
+#
+# A brute forcing application
+
+source "${ALIC3_SH_DIR}/functions/echoColor"
+
+maxLength=10
+charSet="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789."
+charSetLength=0
+charSetLastIndex=0
+
+setLengths() {
+  charSetLength=${#charSet}
+  charSetLastIndex=$(($charSetLength - 1))
+}
+
+getCharSetIndex() {
+  local charSetIndex
+  for charSetIndex in $(seq 0 $charSetLastIndex); do
+    local char=${charSet:$charSetIndex:1}
+
+    if [[ $1 == $char ]]; then
+     echo -n $charSetIndex
+     return
+    fi
+  done
+
+  echo -n "-1"
+}
+
+echoChar() {
+  echo -ne "${charSet:$1:1}"
+}
+
+echoWord() {
+  local char
+  for char in "$@"; do
+    if [[ $char -lt 0 ]]; then
+      break
+    fi
+
+    echoChar $char
+  done
+
+  echo ""
+}
+
+checkComplete() {
+  local i
+  for i in $(seq ${#@} -1 1); do
+    local char=${!i}
+
+    if [[ $char -lt $charSetLastIndex ]]; then
+      echo -n 0
+      return
+    fi
+  done
+
+  echo -n 1
+}
+
+lastWord=""
+
+main() {
+  if [[ ! -z $2 ]]; then
+    maxLength=$2
+  fi
+
+  local chars=()
+
+  local i
+  for i in $(seq 1 $maxLength); do
+    chars+=(-1)
+  done
+
+  if [[ ! -z $3 ]]; then
+    charSet="$3"
+  fi
+
+  setLengths
+
+  if [[ ! -z $1 ]]; then
+    if [[ ${#1} -gt $maxLength ]]; then
+      echoColor rb "Input longer than max length"
+      exit 1
+    fi
+
+    local i
+    for i in $(seq 0 $((${#1} - 1))); do
+      local char=${1:$i:1}
+      local charSetIndex=$(getCharSetIndex $char)
+
+      if [[ $charSetIndex == -1 ]]; then
+        echoColorBeginning rb "Invalid char: " "$char"
+        exit 1
+      fi
+
+      chars[$i]=$charSetIndex
+    done
+  fi
+
+  local charsLength=${#chars[@]}
+  local charsLastIndex=$(($charsLength - 1))
+
+  while [[ $(checkComplete "${chars[@]}") != 1 ]]; do
+    local i
+    for i in $(seq 0 $charsLastIndex); do
+      chars[$i]=$((${chars[$i]} + 1))
+
+      if [[ ${chars[$i]} -lt $charSetLength ]]; then
+        break
+      fi
+
+      chars[$i]=0
+    done
+
+    local word=$(echoWord "${chars[@]}")
+    lastWord="$word"
+
+    echo "$word"
+  done
+}
+
+onSigInt() {
+  echo -e "\nInterupted on: $lastWord"
+  exit 1
+}
+
+trap onSigInt SIGINT
+
+main $@
