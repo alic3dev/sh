@@ -1,0 +1,51 @@
+#!/bin/bash
+
+source "${ALIC3_SH_DIR}/variables/colors"
+source "${ALIC3_SH_DIR}/functions/reduceTime"
+source "${ALIC3_SH_DIR}/functions/detectOperatingSystem"
+
+SPECIFICATIONS_FILE_PATH=/usr/local/etc/sysinfo.specifications
+
+printApple() {
+  local apple=""
+  apple+="${colorGreen}       \ ${colorBoldGreen}/${colorReset} \n"
+  apple+="${colorBoldRed}    _${colorRed}__/${colorBoldRed}__${colorReset}    ${1}\n"
+  apple+="${colorBoldRed}   /${colorRed}#${colorBoldRed}     \ ${colorReset}  ${2}\n"
+  apple+="${colorRed}  |     ${colorBoldRed}#${colorRed}#${colorBoldRed} |${colorReset}  ${3}\n"
+  apple+="${colorRed}  |      ${colorBoldRed}# /${colorReset}  ${4}\n"
+  apple+="${colorRed}   \__-${colorBoldRed}___/${colorReset}  ${5}\n"
+  
+  printf "${apple}"
+}
+
+sysinfo() {
+  local apk_stats=$(apk stats)
+  local installed_packages=$(printf "${apk_stats}" | head -n 2 | tail -n 1 | cut -d " " -f 4)
+  local architecture=$(uname -m)
+  local uptime=$(cat /proc/uptime | cut -d " " -f 1)
+  local uptime_sub_seconds=$(cut -d "." -f 2 <<< "${uptime}")
+
+  if [[ ${#uptime_sub_seconds} == 1 ]]; then
+    uptime_sub_seconds="0${uptime_sub_seconds}"
+  fi
+
+  uptime=$(reduceTime "$(cut -d "." -f 1 <<< "${uptime}")${uptime_sub_seconds}s")
+
+  local operatingSystem=$(detectOperatingSystem)
+  local userName=$(whoami)
+
+  local specifications=""
+
+  if [[ -r ${SPECIFICATIONS_FILE_PATH} ]]; then
+    specifications="   $(cat "${SPECIFICATIONS_FILE_PATH}")\n\n"
+  fi
+
+  local colorsDisplay=$(colors blocks 2 3)
+
+  printf "\n"
+  printApple "os           : ${colorBoldForeground}${operatingSystem}${colorReset}" "user         : ${colorBoldForeground}${userName}${colorReset}" "packages     : ${colorBoldForeground}${installed_packages}${colorReset}" "architecture : ${colorBoldForeground}${architecture}${colorReset}" " uptime       : ${colorBoldForeground}${uptime}${colorReset}"
+  printf "\n${specifications}${colorsDisplay}\n\n"
+}
+
+sysinfo $@
+
