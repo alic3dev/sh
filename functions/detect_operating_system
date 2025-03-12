@@ -6,7 +6,16 @@ detectOperatingSystem() {
   if [[ -r "${OS_RELEASE_PATH}" ]]; then
     cat "${OS_RELEASE_PATH}" | head -n 2 | tail -n 1 | cut -d "=" -f 2
   else
-    printf "unknown"
+    local kernal_name=$(uname -s)
+
+    case "$kernal_name" in
+      "Darwin")
+        printf "darwin"
+      ;;
+      *)
+        printf "unknown"
+      ;;
+    esac
   fi
 }
 
