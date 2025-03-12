@@ -1,0 +1,21 @@
+#!/bin/zsh
+
+detect_kernel() {
+  local OS_RELEASE_PATH=/etc/os-release
+
+  if [[ -r "${OS_RELEASE_PATH}" ]]; then
+    cat "${OS_RELEASE_PATH}" | head -n 2 | tail -n 1 | cut -d "=" -f 2
+  else
+    local kernel_name=$(uname -s)
+
+    case "$kernel_name" in
+      "Darwin")
+        printf "darwin"
+      ;;
+      *)
+        printf "unknown"
+      ;;
+    esac
+  fi
+}
+

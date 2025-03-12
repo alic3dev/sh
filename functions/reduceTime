@@ -1,0 +1,103 @@
+#!/bin/bash
+
+reduceTime() {
+  local mode="s"
+  local totalTime
+
+  if [[ $# == 2 ]]; then
+    mode=$1
+    totalTime=$2
+  else
+    totalTime=$1
+
+    local totalTimeLength=${#totalTime}
+
+    if [[ "${totalTime}" == *"ms" ]]; then 
+      totalTimeLength=$((${totalTimeLength} - 2))
+    elif [[ "${totalTime}" == *"s" ]]; then
+      totalTimeLength=$((${totalTimeLength} - 1))
+    fi
+    
+    mode="${totalTime:${totalTimeLength}}"
+    totalTime="${totalTime:0:${totalTimeLength}}"
+  fi
+
+  case "$mode" in
+    "s" | "seconds")
+    ;;
+    "ms" | "milliseconds")
+      totalTime=$((${totalTime} / 1000))
+    ;;
+    *)
+    ;;
+  esac
+
+  local years=0
+  local months=0
+  local days=0
+  local hours=0
+  local minutes=0
+  local seconds=${totalTime}
+
+  while [[ ${seconds} -ge 60 ]]; do
+    seconds=$((${seconds} - 60))
+    minutes=$((${minutes} + 1))
+    
+    if [[ ${minutes} -lt 60 ]]; then
+      continue
+    fi
+
+    minutes=0
+    hours=$((${hours} + 1))
+
+    if [[ ${hours} -lt 24 ]]; then
+      continue
+    fi
+
+    hours=0
+    days=$((${days} + 1))
+
+    if [[ ${days} -lt 30 ]]; then
+      continue
+    fi
+
+    days=0
+    months=$((${months} + 1))
+
+    if [[ ${months} -lt 12 ]]; then
+      continue
+    fi
+
+    months=0
+    years=$((${years} + 1))
+  done
+
+  local reducedTime=""
+
+  if [[ ${years} -gt 0 ]]; then
+    reducedTime="${years}y "
+  fi
+
+  if [[ ${months} -gt 0 ]]; then
+    reducedTime="${reducedTime}${months}M "
+  fi
+
+  if [[ ${days} -gt 0 ]]; then
+    reducedTime="${reducedTime}${days}d "
+  fi
+
+  if [[ ${hours} -gt 0 ]]; then
+    reducedTime="${reducedTime}${hours}h "
+  fi
+
+  if [[ ${minutes} -gt 0 ]]; then
+    reducedTime="${reducedTime}${minutes}m "
+  fi
+
+  if [[ ${seconds} -gt 0 ]]; then
+    reducedTime="${reducedTime}${seconds}s "
+  fi
+
+  printf "${reducedTime}"
+}
+
