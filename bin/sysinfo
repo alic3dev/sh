@@ -1,49 +1,150 @@
-#!/bin/bash
+#!/bin/zsh
 
 source "${ALIC3_SH_DIR}/variables/colors"
 source "${ALIC3_SH_DIR}/functions/reduceTime"
-source "${ALIC3_SH_DIR}/functions/detectOperatingSystem"
+source "${ALIC3_SH_DIR}/functions/detect_kernel"
 
 SPECIFICATIONS_FILE_PATH=/usr/local/etc/sysinfo.specifications
 
-printApple() {
+print_apple() {
   local apple=""
   apple+="${colorGreen}       \ ${colorBoldGreen}/${colorReset} \n"
   apple+="${colorBoldRed}    _${colorRed}__/${colorBoldRed}__${colorReset}    ${1}\n"
   apple+="${colorBoldRed}   /${colorRed}#${colorBoldRed}     \ ${colorReset}  ${2}\n"
   apple+="${colorRed}  |     ${colorBoldRed}#${colorRed}#${colorBoldRed} |${colorReset}  ${3}\n"
   apple+="${colorRed}  |      ${colorBoldRed}# /${colorReset}  ${4}\n"
-  apple+="${colorRed}   \__-${colorBoldRed}___/${colorReset}  ${5}\n"
+  apple+="${colorRed}   \__-${colorBoldRed}___/${colorReset}   ${5}\n"
   
   printf "${apple}"
 }
 
 sysinfo() {
-  local apk_stats=$(apk stats)
-  local installed_packages=$(printf "${apk_stats}" | head -n 2 | tail -n 1 | cut -d " " -f 4)
   local architecture=$(uname -m)
-  local uptime=$(cat /proc/uptime | cut -d " " -f 1)
-  local uptime_sub_seconds=$(cut -d "." -f 2 <<< "${uptime}")
+  local uptime
 
-  if [[ ${#uptime_sub_seconds} == 1 ]]; then
-    uptime_sub_seconds="0${uptime_sub_seconds}"
+  if [[ -f /proc/uptime ]]; then
+    uptime=$(cat /proc/uptime | cut -d " " -f 1)
+    local uptime_sub_seconds=$(cut -d "." -f 2 <<< "${uptime}")
+
+    if [[ ${#uptime_sub_seconds} == 1 ]]; then
+      uptime_sub_seconds="0${uptime_sub_seconds}"
+    fi
+
+    uptime=$(reduceTime "$(cut -d "." -f 1 <<< "${uptime}")${uptime_sub_seconds}s")
+  else
+    local uptime_stats=$(uptime)
+
+    uptime=$(uptime)
+
+    local uptime_days=0
+    local uptime_hours=0
+    local uptime_minutes=0
+ 
+    if [[ ! -z $(printf "${uptime}" | grep day) ]]; then
+      uptime_days=$(cut -d " " -f 5 <<< "${uptime}")
+      
+      local uptime_hours_minutes=$(cut -d " " -f 8 <<< "${uptime}" | tr -d ",")
+      
+      uptime_hours=$(cut -d ":" -f 1 <<< "${uptime_hours_minutes}")
+      uptime_minutes=$(cut -d ":" -f 2 <<< "${uptime_hours_minutes}")
+    else
+      local uptime_hours_minutes=$(cut -d " " -f 7 <<< "${uptime}" | tr -d ",")
+      
+      uptime_hours=$(cut -d ":" -f 1 <<< "${uptime_hours_minutes}")
+      uptime_minutes=$(cut -d ":" -f 2 <<< "${uptime_hours_minutes}")
+    fi
+    
+    uptime=""
+
+    if [[ ${uptime_days} -gt 0 ]]; then
+      uptime+="${uptime_days}d ${uptime_hours}h ${uptime_minutes}m"
+    elif [[ ${uptime_hours} -gt 0 ]]; then
+      uptime+="${uptime_hours}h ${uptime_minutes}m"
+    else
+      uptime+="${uptime_minutes}m"
+    fi
   fi
 
-  uptime=$(reduceTime "$(cut -d "." -f 1 <<< "${uptime}")${uptime_sub_seconds}s")
+  local kernel=$(detect_kernel)
+  local operating_system
+  
+  local installed_packages="0"
+  
+  case "${kernel}" in
+    "alpine")
+      installed_packages=$(apk stats | head -n 2 | tail -n 1 | cut -d " " -f 4)
+    ;;
+    "darwin")
+      local brew_stats=$(brew deps --installed 2> /dev/null)
+      local brew_exit_code=$?
 
-  local operatingSystem=$(detectOperatingSystem)
+      if [[ $brew_exit_code == 0 ]]; then
+        installed_packages=$(wc -l <<< "${brew_stats}")
+      fi
+
+      local operating_system_info=$(sw_vers | tr -s "[\n|\t ]" " ")
+      operating_system+="$(cut -d " " -f 2 <<< "${operating_system_info}")_"
+      operating_system+="$(cut -d " " -f 4 <<< "${operating_system_info}")"
+    ;;
+    *)
+      kernel=""
+    ;;
+  esac
+
   local userName=$(whoami)
 
-  local specifications=""
+  local specifications
 
   if [[ -r ${SPECIFICATIONS_FILE_PATH} ]]; then
     specifications="   $(cat "${SPECIFICATIONS_FILE_PATH}")\n\n"
   fi
 
-  local colorsDisplay=$(colors blocks 2 3)
+  local print_buffer=()
+  local print_buffer_secondary=()
+  
+  if [[ ! -z "${kernel}" ]]; then
+    print_buffer+=("kernel       : ${colorBoldForeground}${kernel}${colorReset}")
+  fi
 
+  if [[ ! -z "${operating_system}" ]]; then
+    print_buffer+=("os           : ${colorBoldForeground}${operating_system}${colorReset}")
+  fi
+
+  if [[ ! -z "${userName}" ]]; then
+    print_buffer+=("user         : ${colorBoldForeground}${userName}${colorReset}")
+  fi
+
+  if [[ ! -z "${installed_packages}" ]]; then
+    print_buffer+=("packages     : ${colorBoldForeground}${installed_packages}${colorReset}")
+  fi
+
+  if [[ ! -z "${architecture}" ]]; then
+    print_buffer+=("architecture : ${colorBoldForeground}${architecture}${colorReset}")
+  fi
+
+  if [[ ! -z "${uptime}" ]]; then
+    local uptime_buffer="uptime       : ${colorBoldForeground}${uptime}${colorReset}"
+  
+    if [[ ${#print_buffer[@]} -lt 5 ]]; then
+      print_buffer+=("${uptime_buffer}")
+    else
+      print_buffer_secondary+=("${uptime_buffer}")
+    fi
+  fi
+  
   printf "\n"
-  printApple "os           : ${colorBoldForeground}${operatingSystem}${colorReset}" "user         : ${colorBoldForeground}${userName}${colorReset}" "packages     : ${colorBoldForeground}${installed_packages}${colorReset}" "architecture : ${colorBoldForeground}${architecture}${colorReset}" " uptime       : ${colorBoldForeground}${uptime}${colorReset}"
+  
+  print_apple "${print_buffer[1]}" "${print_buffer[2]}" "${print_buffer[3]}" "${print_buffer[4]}" "${print_buffer[5]}"
+  
+  for ((
+    print_buffer_secondary_index = 1;
+    print_buffer_secondary_index <= ${#print_buffer_secondary[@]};
+    ++print_buffer_secondary_index
+  )) {
+    printf "              ${print_buffer_secondary[${print_buffer_secondary_index}]}\n"
+  }
+  
+  local colorsDisplay=$(${ALIC3_SH_DIR}/bin/colors blocks 2 3)
   printf "\n${specifications}${colorsDisplay}\n\n"
 }
 
